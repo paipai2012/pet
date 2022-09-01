@@ -24,13 +24,22 @@ App = {
   },
 
   initWeb3: async function() {
-    if(typeof web3 !== 'undefined'){
-      console.log('if');
-      App.web3Provider = web3.currentProvider;
-    }else{
+    if (window.ethereum){
+      console.log('aaa');
+      App.web3Provider = window.ethereum;
+      try{
+        await window.ethereum.enable();
+      } catch (error) {
+        console.error("User denied account access")
+      }
+    } else if (window.web3) {
+      console.log('bbb');
+      App.web3Provider = window.web3.currentProvider;
+    } else{
+      console.log('ccc');
       App.web3Provider = new Web3.providers.HttpProvider('http://127.0.0.1:7545');
-      web3 = new Web3(App.web3Provider);
     }
+    web3 = new Web3(App.web3Provider);
     return App.initContract();
   },
 
@@ -56,40 +65,35 @@ App = {
       adoptionInstance = instance;
       return adoptionInstance.getAdopters();
     }).then(function(adopters){
-      console.info(adopters.length);
       for (let i = 0; i < adopters.length; i++) {
         if(adopters[i]!='0x0000000000000000000000000000000000000000'){
+          console.log('领养者的地址'+adopters[i]);
           $('.panel-pet').eq(i).find('button').text('success').attr('disabled',true);
         }
       }
     }).catch(function(err){
       console.log('markAdopted:'+err.message);
     });
-    /*
-     * Replace me...
-     */
   },
 
   handleAdopt: function(event) {
-    event.preventDefault();
+    // event.preventDefault();
     var petId = parseInt($(event.target).data('id'));
     console.log(petId);
     var adoptionInstance;
     web3.eth.getAccounts(function(error, accounts){
-      if(error){
-        console.log(error);
-      }
       var account = accounts[0];
       web3.eth.defaultAccount = account;
       App.contracts.Adoption.deployed().then(function(instance){
+        console.log('111');
         adoptionInstance = instance;
-        adoptionInstance.adopt(petId);
-        return;
+        return adoptionInstance.adopt(petId);
       }).then(function(result){
+        console.info('result:'+result);
         return App.markAdopted();
       }).catch(function(err){
         console.log(err.message);
-      })
+      });
     });
   }
 
